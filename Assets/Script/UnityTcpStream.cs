@@ -11,16 +11,44 @@ public class UnityTcpStream : MonoBehaviour
     [SerializeField]
     private TcpClient client;
     private NetworkStream stream;
+    [SerializeField]
     public IPAddress serverAddress;
     public string serverIpv4; // 연결할 서버 IP
     public int serverPort; // 연결할 서버 포트
+    public string uuid; // UUID
+    private Dictionary<string, object> data_chahe = new Dictionary<string, object>();
+
+    private static UnityTcpStream _instance;
+
+    public static UnityTcpStream instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindObjectOfType<UnityTcpStream>();
+                if (_instance == null)
+                {
+                    GameObject obj = new GameObject("RecoveryNetworkManager");
+                    _instance = obj.AddComponent<UnityTcpStream>();
+                    DontDestroyOnLoad(obj);
+                }
+            }
+            return _instance;
+        }
+    }
 
     private void Awake()
     {
         Debug.Log("UnityTcpStream Awake called");
-        
+        InitializedConnectServer(serverIpv4, serverPort);
+        InitializedUuid();
+    }
+
+    public void InitializedConnectServer(string ipv4, int port)
+    {
         // MonoBehaviour의 Awake 메서드에서 TcpClient를 초기화합니다.
-        if (string.IsNullOrEmpty(serverIpv4) || serverPort <= 0)
+        if (string.IsNullOrEmpty(ipv4) || port <= 0)
         {
             Debug.LogError("Server IP or Port is not set.");
             return;
@@ -28,32 +56,90 @@ public class UnityTcpStream : MonoBehaviour
         InitializedTcpStream();
     }
 
-    public static string GenerateJsonString(string send_type = "connect", string command = null, string uuid = "", Dictionary<string, object> send_data = null, List<string> request_data = null)
+    public string InitializedUuid()
     {
-        if (send_type != "uuid" && send_type != "name" && send_type != "connect") {
-            return "{\"error\": \"Invalid send_type\"}";
-        }
+        return InitializedUuidInternal("get", null);
+    }
 
-        if (command != "check" && command != "get" && command != "send" && command != "request" && command != "both") {
-            return "{\"error\": \"Invalid command\"}";
-        }
+    public string InitializedUuid(string uuid)
+    {
+        return InitializedUuidInternal("check", uuid);
+    }
 
-        TcpStreamData data = new TcpStreamData
+    private string InitializedUuidInternal(string command, string uuidValue)
+    {
+        TcpStreamData data = SendAndReceive("uuid", command, uuidValue, new Dictionary<string, object>(), new List<string>());
+        Debug.Log($"Received data: {data}");
+
+        if (data.send_type == "ok")
         {
-            send_type = send_type,
-            command = command,
-            uuid = uuid,
-            send_data = send_data,
-            request_data = request_data
-        };
+            uuid = data.uuid;
+            return uuid;
+        }
+        else
+        {
+            Debug.LogError($"Failed to {(command == "get" ? "get" : "check")} UUID. type: {data.send_type}, error_level: {data.command}");
+            return null;
+        }
+    }
 
-        Debug.Log($"Generated JSON: {JsonUtility.ToJson(data)}");
 
-        string json = JsonConvert.SerializeObject(data);
+    public T NewGetData<T>(string name_space)
+    {
+        List<string> request_data = new List<string>();
+        request_data.Add(name_space);
 
-        Debug.Log($"Generated JSON String: {json}");
+        TcpStreamData data = SendAndReceive("uuid", "get", uuid, new Dictionary<string, object>(), request_data);
+        Debug.Log($"Received data: {data.send_data[name_space]}");
+        if (data.send_data.ContainsKey(name_space))
+        {
+            data_chahe[name_space] = data.send_data[name_space];
+            return JsonConvert.DeserializeObject<T>(data.send_data[name_space].ToString());
+        }
+        else
+        {
+            Debug.LogError($"Key '{name_space}' not found in send_data.");
+            return default;
+        }
+    }
 
-        return json;
+    public object GetData(string name_space)
+    {
+        object cachedData = data_chahe.GetValueOrDefault(name_space);
+        if (cachedData != null)
+        {
+            Debug.Log($"Returning cached data for {name_space}");
+            return cachedData;
+        } else
+        {
+            Debug.LogWarning($"No cached data found for {name_space}.");
+            return null;
+        }
+    }
+
+    private TcpStreamData SendAndReceive(string send_type, string command, string uuid, Dictionary<string, object> send_data, List<string> request_data)
+    {
+        // JSON 문자열을 생성합니다.
+        string send_message = TcpStreamConverter.GenerateJsonString(send_type, command, uuid, send_data, request_data);
+        Debug.Log($"Send message: {send_message}");
+        // 서버에 메시지를 보냅니다.
+        ServerWrite(send_message);
+        // 서버로부터 응답을 읽습니다.
+        string read_data = ServerRead(1024);
+        Debug.Log($"Read data: {read_data}");
+        // JSON 문자열을 파싱합니다.
+        TcpStreamData data = TcpStreamConverter.DeserializeJson<TcpStreamData>(read_data);
+        Debug.Log($"Received data: {data.send_data}");
+        // 응답 데이터를 반환합니다.
+        if (data.send_type == "ok")
+        {
+            return data;
+        }
+        else
+        {
+            Debug.LogError($"Failed to {request_data}. type: {data.send_type}, error_level: {data.command}");
+            return default;
+        }
     }
 
     public void ServerWrite(string msg)
@@ -107,7 +193,7 @@ public class UnityTcpStream : MonoBehaviour
     {
         client = new TcpClient();
         Debug.Log("Created TcpClient");
-        
+
         serverAddress = IPAddress.Parse(serverIpv4);
 
         await client.ConnectAsync(serverAddress, serverPort);
@@ -115,98 +201,6 @@ public class UnityTcpStream : MonoBehaviour
 
         stream = client.GetStream();
         Debug.Log("Got NetworkStream from TcpClient");
-
-        string elcomeMessage = GenerateJsonString("uuid", "get", "");
-        Debug.Log($"Welcome message: {elcomeMessage}");
-
-        await AsyncWriteData(elcomeMessage);
-        Debug.Log("AsyncWriteData completed");
-
-        string read_data = await AsyncReadData(1024);
-        Debug.Log($"Received data: {read_data}");
-    }
-
-    /*
-    private async Task InitializedConnectServer()
-    {
-        try
-        {
-            client = new TcpClient();
-            // 서버와 연결을 시도합니다.
-            await client.ConnectAsync(ServerIp, ServerPort);
-            bool connect = await VerifyConnection();
-            Debug.Log($"Connected to server: {connect}");
-            await AsyncWriteData(
-                GenerateJsonString("uuid", "get", "", new Dictionary<string, object>(), new List<string>())
-            );
-        }
-        catch (SocketException ex)
-        {
-            Debug.LogError($"SocketException: {ex.Message}");
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"Exception: {ex.Message}");
-        }
-    }
-    */
-
-    public string InitializedCheckUuid(string uuid)
-    {
-        // UUID를 비동기적으로 초기화합니다.
-        // 이 메서드는 Unity의 MonoBehaviour에서 비동기 작업을 처리하기 위해 사용됩니다.
-        string response = null;
-        _ = InitializedAsyncCheckUuid(uuid).ContinueWith(task =>
-        {
-            if (task.IsFaulted)
-            {
-                Debug.LogError($"Error: {task.Exception}");
-            }
-            else
-            {
-                response = task.Result;
-            }
-        });
-        return response;
-    }
-
-    private async Task<string> InitializedAsyncCheckUuid(string uuid)
-    {
-        // UUID를 비동기적으로 초기화합니다.
-        string jsonString = GenerateJsonString("uuid", "check", uuid);
-        await AsyncWriteData(jsonString);
-        // 서버로부터 UUID 확인 응답을 받습니다.
-        string response = await AsyncReadData(1024);
-        return response;
-    }
-
-    public string InitializedGetUuid()
-    {
-        // UUID를 비동기적으로 초기화합니다.
-        // 이 메서드는 Unity의 MonoBehaviour에서 비동기 작업을 처리하기 위해 사용됩니다.
-        string uuid = null;
-        _ = InitializedAsyncGetUuid().ContinueWith(task =>
-        {
-            if (task.IsFaulted)
-            {
-                Debug.LogError($"Error: {task.Exception}");
-            }
-            else
-            {
-                uuid = task.Result;
-            }
-        });
-        return uuid;
-    }
-
-    private async Task<string> InitializedAsyncGetUuid()
-    {
-        // UUID 생성 요청
-        string jsonString = GenerateJsonString("uuid", "get", "", new Dictionary<string, object>(), new List<string>());
-        await AsyncWriteData(jsonString);
-        // 서버로부터 UUID를 받습니다.
-        string uuid = await AsyncReadData(1024);
-        return uuid;
     }
 
     private async Task AsyncWriteData(string msg)

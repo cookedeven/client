@@ -29,9 +29,8 @@ public class ConnectServer : MonoBehaviour
             {
                 { "name", "¿Í»÷ÁÖ" }
             };
-            List<string> requestData = new List<string>();
 
-            string jsonString = UnityTcpStream.GenerateJsonString(sendType, command, uuid, sendData, requestData);
+            string jsonString = TcpStreamConverter.GenerateJsonString(sendType, command, uuid, sendData, null);
             unityTcpStream.ServerWrite(jsonString);
         }
     }
