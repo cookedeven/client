@@ -16,7 +16,7 @@ public class UnityTcpStream : MonoBehaviour
     public string serverIpv4; // 연결할 서버 IP
     public int serverPort; // 연결할 서버 포트
     public string uuid; // UUID
-    private Dictionary<string, object> data_chahe = new Dictionary<string, object>();
+    private Dictionary<string, object> data_cache = new Dictionary<string, object>();
 
     private static UnityTcpStream _instance;
 
@@ -93,7 +93,7 @@ public class UnityTcpStream : MonoBehaviour
         Debug.Log($"Received data: {data.send_data[name_space]}");
         if (data.send_data.ContainsKey(name_space))
         {
-            data_chahe[name_space] = data.send_data[name_space];
+            data_cache[name_space] = data.send_data[name_space];
             return JsonConvert.DeserializeObject<T>(data.send_data[name_space].ToString());
         }
         else
@@ -105,7 +105,7 @@ public class UnityTcpStream : MonoBehaviour
 
     public object GetData(string name_space)
     {
-        object cachedData = data_chahe.GetValueOrDefault(name_space);
+        object cachedData = data_cache.GetValueOrDefault(name_space);
         if (cachedData != null)
         {
             Debug.Log($"Returning cached data for {name_space}");
