@@ -39,6 +39,14 @@ public class UnityTcpStream : MonoBehaviour
 
     private void Awake()
     {
+        if (_instance != null && _instance != this)
+        {
+            Destroy(gameObject);  // 다른 인스턴스를 삭제
+            return;
+        }
+        _instance = this;
+        DontDestroyOnLoad(gameObject);
+
         Debug.Log("UnityTcpStream Awake called");
         InitializedConnectServer(serverIpv4, serverPort);
         InitializedUuid("get", null);
