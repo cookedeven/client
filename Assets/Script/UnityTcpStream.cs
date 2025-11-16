@@ -11,12 +11,11 @@ public class UnityTcpStream : MonoBehaviour
     [SerializeField]
     private TcpClient client;
     private NetworkStream stream;
-    [SerializeField]
     public IPAddress serverAddress;
-    public string serverIpv4; // ¿¬°áÇÒ ¼­¹ö IP
-    public int serverPort; // ¿¬°áÇÒ ¼­¹ö Æ÷Æ®
+    public string serverIpv4; // ì—°ê²°í•  ì„œë²„ IP
+    public int serverPort; // ì—°ê²°í•  ì„œë²„ í¬íŠ¸
     public string uuid; // UUID
-    private Dictionary<string, object> data_cache = new Dictionary<string, object>();
+    private Dictionary<string, object> data_cache = new Dictionary<string, object>(); // ë°›ì€ ë°ì´í„°ë¥¼ ì €ì¥
 
     private static UnityTcpStream _instance;
 
@@ -42,12 +41,12 @@ public class UnityTcpStream : MonoBehaviour
     {
         Debug.Log("UnityTcpStream Awake called");
         InitializedConnectServer(serverIpv4, serverPort);
-        InitializedUuid();
+        InitializedUuid("get", null);
     }
 
     public void InitializedConnectServer(string ipv4, int port)
     {
-        // MonoBehaviourÀÇ Awake ¸Ş¼­µå¿¡¼­ TcpClient¸¦ ÃÊ±âÈ­ÇÕ´Ï´Ù.
+        // MonoBehaviourì˜ Awake ë©”ì„œë“œì—ì„œ TcpClientë¥¼ ì´ˆê¸°í™”í•©ë‹ˆë‹¤.
         if (string.IsNullOrEmpty(ipv4) || port <= 0)
         {
             Debug.LogError("Server IP or Port is not set.");
@@ -56,17 +55,7 @@ public class UnityTcpStream : MonoBehaviour
         InitializedTcpStream();
     }
 
-    public string InitializedUuid()
-    {
-        return InitializedUuidInternal("get", null);
-    }
-
-    public string InitializedUuid(string uuid)
-    {
-        return InitializedUuidInternal("check", uuid);
-    }
-
-    private string InitializedUuidInternal(string command, string uuidValue)
+    private string InitializedUuid(string command, string uuidValue)
     {
         TcpStreamData data = SendAndReceive("uuid", command, uuidValue, new Dictionary<string, object>(), new Dictionary<string, object>());
         Debug.Log($"Received data: {data}");
@@ -75,8 +64,7 @@ public class UnityTcpStream : MonoBehaviour
         {
             uuid = data.uuid;
             return uuid;
-        }
-        else
+        } else
         {
             Debug.LogError($"Failed to {(command == "get" ? "get" : "check")} UUID. type: {data.send_type}, error_level: {data.command}");
             return null;
@@ -95,8 +83,7 @@ public class UnityTcpStream : MonoBehaviour
         {
             data_cache[name_space] = data.send_data[name_space];
             return JsonConvert.DeserializeObject<T>(data.send_data[name_space].ToString());
-        }
-        else
+        } else
         {
             Debug.LogError($"Key '{name_space}' not found in send_data.");
             return default;
@@ -127,8 +114,7 @@ public class UnityTcpStream : MonoBehaviour
         if (response.send_type == "ok")
         {
             return response;
-        }
-        else
+        } else
         {
             Debug.LogError($"Failed to set data for {name_space}. type: {response.send_type}, error_level: {response.command}");
             return default;
@@ -137,23 +123,22 @@ public class UnityTcpStream : MonoBehaviour
 
     private TcpStreamData SendAndReceive(string send_type, string command, string uuid, Dictionary<string, object> send_data, Dictionary<string, object> request_data)
     {
-        // JSON ¹®ÀÚ¿­À» »ı¼ºÇÕ´Ï´Ù.
+        // JSON ë¬¸ìì—´ì„ ìƒì„±í•©ë‹ˆë‹¤.
         string send_message = TcpStreamConverter.GenerateJsonString(send_type, command, uuid, send_data, request_data);
         Debug.Log($"Send message: {send_message}");
-        // ¼­¹ö¿¡ ¸Ş½ÃÁö¸¦ º¸³À´Ï´Ù.
+        // ì„œë²„ì— ë©”ì‹œì§€ë¥¼ ë³´ëƒ…ë‹ˆë‹¤.
         ServerWrite(send_message);
-        // ¼­¹ö·ÎºÎÅÍ ÀÀ´äÀ» ÀĞ½À´Ï´Ù.
+        // ì„œë²„ë¡œë¶€í„° ì‘ë‹µì„ ì½ìŠµë‹ˆë‹¤.
         string read_data = ServerRead(1024);
         Debug.Log($"Read data: {read_data}");
-        // JSON ¹®ÀÚ¿­À» ÆÄ½ÌÇÕ´Ï´Ù.
+        // JSON ë¬¸ìì—´ì„ íŒŒì‹±í•©ë‹ˆë‹¤.
         TcpStreamData data = TcpStreamConverter.DeserializeJson<TcpStreamData>(read_data);
         Debug.Log($"Received data: {data.send_data}");
-        // ÀÀ´ä µ¥ÀÌÅÍ¸¦ ¹İÈ¯ÇÕ´Ï´Ù.
+        // ì‘ë‹µ ë°ì´í„°ë¥¼ ë°˜í™˜í•©ë‹ˆë‹¤.
         if (data.send_type == "ok")
         {
             return data;
-        }
-        else
+        } else
         {
             Debug.LogError($"Failed to {request_data}. type: {data.send_type}, error_level: {data.command}");
             return default;
@@ -162,75 +147,28 @@ public class UnityTcpStream : MonoBehaviour
 
     public void ServerWrite(string msg)
     {
-        _ = AsyncWriteData(msg).ContinueWith(task =>
-        {
-            if (task.IsFaulted)
-            {
-                Debug.LogError($"Error: {task.Exception}");
-            }
-            else
-            {
-                Debug.Log($"Message sent: {msg}");
-            }
-        });
+        byte[] request = Encoding.UTF8.GetBytes(msg);
+        await stream.Write(request, 0, request.Length);
     }
 
     public string ServerRead(int buffer_size)
     {
-        string result = null;
-        _ = AsyncReadData(buffer_size).ContinueWith(task =>
-        {
-            if (task.IsFaulted)
-            {
-                Debug.LogError($"Error: {task.Exception}");
-            }
-            else
-            {
-                result = task.Result;
-            }
-        });
-        return result;
+        byte[] buffer = new byte[buffer_size];
+        int bytesRead = await stream.Read(buffer, 0, buffer.Length);
+        return Encoding.UTF8.GetString(buffer, 0, bytesRead);
     }
 
     private void InitializedTcpStream()
-    {
-        _ = InitializedConnectServer().ContinueWith(task =>
-        {
-            if (task.IsFaulted)
-            {
-                Debug.LogError($"Error: {task.Exception}");
-            }
-            else
-            {
-                Debug.Log($"connect to server");
-            }
-        });
-    }
-
-    private async Task InitializedConnectServer()
     {
         client = new TcpClient();
         Debug.Log("Created TcpClient");
 
         serverAddress = IPAddress.Parse(serverIpv4);
 
-        await client.ConnectAsync(serverAddress, serverPort);
+        client.Connect(serverAddress, serverPort);
         Debug.Log("ConnectAsync completed");
 
         stream = client.GetStream();
         Debug.Log("Got NetworkStream from TcpClient");
-    }
-
-    private async Task AsyncWriteData(string msg)
-    {
-        byte[] request = Encoding.UTF8.GetBytes(msg);
-        await stream.WriteAsync(request, 0, request.Length);
-    }
-
-    private async Task<string> AsyncReadData(int buffer_size)
-    {
-        byte[] buffer = new byte[buffer_size];
-        int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-        return Encoding.UTF8.GetString(buffer, 0, bytesRead);
     }
 }
