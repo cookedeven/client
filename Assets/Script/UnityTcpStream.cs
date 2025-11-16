@@ -54,7 +54,6 @@ public class UnityTcpStream : MonoBehaviour
 
     public void InitializedConnectServer(string ipv4, int port)
     {
-        // MonoBehaviour의 Awake 메서드에서 TcpClient를 초기화합니다.
         if (string.IsNullOrEmpty(ipv4) || port <= 0)
         {
             Debug.LogError("Server IP or Port is not set.");
