@@ -60,7 +60,16 @@ public class UnityTcpStream : MonoBehaviour
             Debug.LogError("Server IP or Port is not set.");
             return;
         }
-        InitializedTcpStream();
+        client = new TcpClient();
+        Debug.Log("Created TcpClient");
+
+        serverAddress = IPAddress.Parse(serverIpv4);
+
+        client.Connect(serverAddress, serverPort);
+        Debug.Log("ConnectAsync completed");
+
+        stream = client.GetStream();
+        Debug.Log("Got NetworkStream from TcpClient");
     }
 
     private string InitializedUuid(string command, string uuidValue)
@@ -164,19 +173,5 @@ public class UnityTcpStream : MonoBehaviour
         byte[] buffer = new byte[buffer_size];
         int bytesRead = await stream.Read(buffer, 0, buffer.Length);
         return Encoding.UTF8.GetString(buffer, 0, bytesRead);
-    }
-
-    private void InitializedTcpStream()
-    {
-        client = new TcpClient();
-        Debug.Log("Created TcpClient");
-
-        serverAddress = IPAddress.Parse(serverIpv4);
-
-        client.Connect(serverAddress, serverPort);
-        Debug.Log("ConnectAsync completed");
-
-        stream = client.GetStream();
-        Debug.Log("Got NetworkStream from TcpClient");
     }
 }
