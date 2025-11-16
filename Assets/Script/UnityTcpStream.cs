@@ -164,13 +164,13 @@ public class UnityTcpStream : MonoBehaviour
     public void ServerWrite(string msg)
     {
         byte[] request = Encoding.UTF8.GetBytes(msg);
-        await stream.Write(request, 0, request.Length);
+        stream.Write(request, 0, request.Length);
     }
 
     public string ServerRead(int buffer_size)
     {
         byte[] buffer = new byte[buffer_size];
-        int bytesRead = await stream.Read(buffer, 0, buffer.Length);
+        int bytesRead = stream.Read(buffer, 0, buffer.Length);
         return Encoding.UTF8.GetString(buffer, 0, bytesRead);
     }
 }
