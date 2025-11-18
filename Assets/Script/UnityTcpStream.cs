@@ -91,8 +91,12 @@ public class UnityTcpStream : MonoBehaviour
     {
         Dictionary<string, object> send_data = new Dictionary<string, object>();
         Dictionary<string, object> send_data_type = new Dictionary<string, object>();
-        send_data.Add(uuid, "name");
-        TcpStreamData data = SendAndReceive("name", command, )
+        send_data_type.Add("name", name);
+        send_data.Add(uuid, send_data_type);
+        TcpStreamData data = SendAndReceive("name", command, uuid, send_data, new Dictionary<string, object>);
+        Dictionary<string, object> receive_send_data_type = (Dictionary<string, object>)data.send_data[uuid];
+        string recive_name = (string)receive_send_data_type["name"];
+        return recive_name;
     }
 
     public T NewGetData<T>(string name_space, string uuid)
