@@ -90,7 +90,7 @@ public class UnityTcpStream : MonoBehaviour
     private string InitializeedName(string name, string command, string uuid)
     {
         Dictionary<string, object> send_data = new Dictionary<string, object>();
-        Dictionary<string, object> 
+        Dictionary<string, object> send_data_type = new Dictionary<string, object>();
         send_data.Add(uuid, "name");
         TcpStreamData data = SendAndReceive("name", command, )
     }
