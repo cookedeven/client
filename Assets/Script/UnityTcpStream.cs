@@ -161,7 +161,7 @@ public class UnityTcpStream : MonoBehaviour
         // 서버에 메시지를 보냅니다.
         ServerWrite(send_message);
         // 서버로부터 응답을 읽습니다.
-        string read_data = ServerRead(1024);
+        string read_data = ServerRead(65536);
         Debug.Log($"Read data: {read_data}");
         // JSON 문자열을 파싱합니다.
         TcpStreamData data = TcpStreamConverter.DeserializeJson<TcpStreamData>(read_data);
