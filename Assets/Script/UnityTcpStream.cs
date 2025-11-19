@@ -76,7 +76,7 @@ public class UnityTcpStream : MonoBehaviour
         TcpStreamData data = SendAndReceive("uuid", command, uuidValue, new Dictionary<string, object>(), new Dictionary<string, object>());
         Debug.Log($"Received data: {data}");
 
-        if (data.send_type == "ok")
+        if (data.command == "ok")
         {
             uuid = data.uuid;
             return uuid;
@@ -167,7 +167,7 @@ public class UnityTcpStream : MonoBehaviour
         TcpStreamData data = TcpStreamConverter.DeserializeJson<TcpStreamData>(read_data);
         Debug.Log($"Received data: {data.send_data}");
         // 응답 데이터를 반환합니다.
-        if (data.send_type == "ok")
+        if (data.command != "fatal")
         {
             return data;
         } else
