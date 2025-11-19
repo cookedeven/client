@@ -87,7 +87,7 @@ public class UnityTcpStream : MonoBehaviour
         }
     }
 
-    private string InitializeedName(string name, string uuid)
+    private string InitializedName(string name, string uuid)
     {
         Dictionary<string, object> send_data = new Dictionary<string, object>();
         Dictionary<string, object> send_data_type = new Dictionary<string, object>();
