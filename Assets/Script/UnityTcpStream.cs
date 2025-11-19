@@ -143,14 +143,7 @@ public class UnityTcpStream : MonoBehaviour
         send_data.Add(name_space, data);
 
         TcpStreamData response = SendAndReceive("connect", null, uuid, send_data, new Dictionary<string, object>());
-        if (response.send_type == "ok")
-        {
-            return response;
-        } else
-        {
-            Debug.LogError($"Failed to set data for {name_space}. type: {response.send_type}, error_level: {response.command}");
-            return default;
-        }
+        return response;
     }
 
     private TcpStreamData SendAndReceive(string send_type, string command, string uuid, Dictionary<string, object> send_data, Dictionary<string, object> request_data)
