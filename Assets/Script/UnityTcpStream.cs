@@ -93,9 +93,14 @@ public class UnityTcpStream : MonoBehaviour
         Dictionary<string, object> send_data_type = new Dictionary<string, object>();
         send_data_type.Add("name", name);
         send_data.Add(uuid, send_data_type);
-        TcpStreamData data = SendAndReceive("name", "get", uuid, send_data, new Dictionary<string, object>);
+        TcpStreamData data = SendAndReceive("name", "get", uuid, send_data, new Dictionary<string, object>());
         Dictionary<string, object> receive_send_data_type = (Dictionary<string, object>)data.send_data[uuid];
-        string recive_name = (string)receive_send_data_type["name"];
+        string receive_name = (string)receive_send_data_type["name"];
+        if (data.send_type == "error")
+        {
+            Debug.Log($"error level: {data.command}");
+            Debug.Log($"set to name is: {receive_name}");
+        }
         return recive_name;
     }
 
