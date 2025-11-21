@@ -7,8 +7,8 @@ using System;
 public struct TcpStreamData
 {
     public string send_type; // uuid, name, connect
-    public string command; // check, get, send, request, both
+    public string command; // check, get
     public string uuid; // UUID
-    public Dictionary<string, object> send_data; // Àü¼ÛÇÒ µ¥ÀÌÅÍ
-    public Dictionary<string, object> request_data; // ¿äÃ»ÇÒ µ¥ÀÌÅÍ
+    public Dictionary<string, Dictionary<string, objct>> send_data; // ì „ì†¡í•  ë°ì´í„°
+    public Dictionary<string, object> request_data; // ìš”ì²­í•  ë°ì´í„°
 }
